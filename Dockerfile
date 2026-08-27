@@ -19,8 +19,9 @@ WORKDIR /app
 # Install Python dependencies first (better Docker layer caching —
 # this step only re-runs when requirements.txt actually changes)
 COPY requirements.txt .
+ENV CMAKE_BUILD_PARALLEL_LEVEL=1
+ENV MAKEFLAGS="-j1"
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir dlib-bin \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir gunicorn
 # Now copy the rest of the application
