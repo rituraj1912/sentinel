@@ -26,6 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir gunicorn
 # Now copy the rest of the application
 COPY . .
+RUN mkdir -p /app/data/photos
 
 # Render provides $PORT at runtime; gunicorn binds to it here
 CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app
