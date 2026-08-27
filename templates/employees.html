@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Employees — Sentinel{% endblock %}
+{% block content %}
+
+<div class="topbar fade-in">
+  <div>
+    <span class="eyebrow">Directory</span>
+    <h1 class="page-title">Employees</h1>
+  </div>
+  <a href="{{ url_for('enroll_employee') }}" class="btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Enroll employee
+  </a>
+</div>
+
+{% if employees %}
+<div class="ticket-list">
+  {% for e in employees %}
+  <div class="ticket fade-in ticket-no-divider">
+    <div class="ticket-avatar">
+      {% if e.has_photo %}
+        <img src="{{ url_for('employee_photo', emp_code=e.emp_code) }}">
+      {% else %}
+        {{ e.name[0]|upper }}
+      {% endif %}
+    </div>
+    <div class="ticket-body">
+      <div class="ticket-name">{{ e.name }}</div>
+      <div class="ticket-meta mono">{{ e.emp_code }} &nbsp;·&nbsp; {{ e.department or '—' }}</div>
+    </div>
+    <form method="POST" action="{{ url_for('delete_employee_route', emp_code=e.emp_code) }}"
+          onsubmit="return confirm('Remove {{ e.name }} ({{ e.emp_code }})? This also deletes their attendance history. This cannot be undone.');"
+          style="margin-left:auto; margin-right:6px;">
+      <button type="submit" class="icon-btn-danger" title="Delete employee">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state fade-in">
+  <div class="empty-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+  </div>
+  No employees enrolled yet.<br><br>
+  <a href="{{ url_for('enroll_employee') }}" class="btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Enroll your first employee
+  </a>
+</div>
+{% endif %}
+
+{% endblock %}

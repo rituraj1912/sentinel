@@ -1,0 +1,6 @@
+opencv-python
+face_recognition
+numpy
+Pillow
+Flask>=3.0
+Werkzeug>=3.0

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Sentinel{% endblock %}
+{% block content %}
+
+<div class="topbar fade-in">
+  <div>
+    <span class="eyebrow"><span class="status-dot"></span> Live overview</span>
+    <h1 class="page-title">Dashboard</h1>
+  </div>
+  <div class="user-chip">
+    <div class="user-avatar">{{ username[0]|upper }}</div>
+    Signed in as <span class="mono">{{ username }}</span>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card fade-in">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div class="stat-label">Checked in today</div>
+    <div class="stat-value">{{ stats.checked_in_today }}<span class="unit">/ {{ stats.total_employees }}</span></div>
+  </div>
+  <div class="stat-card fade-in">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div class="stat-label">Enrolled employees</div>
+    <div class="stat-value">{{ stats.total_employees }}</div>
+  </div>
+  <div class="stat-card fade-in">
+    <div class="stat-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 7V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2"/></svg>
+    </div>
+    <div class="stat-label">Recognition source</div>
+    <div class="stat-value" style="font-size: 19px;">kiosk.py <span class="unit">webcam</span></div>
+  </div>
+</div>
+
+<div class="section-title">
+  <span class="status-dot"></span> Recent check-ins
+</div>
+
+{% if recent %}
+<div class="ticket-list">
+  {% for r in recent %}
+  <div class="ticket fade-in">
+    <div class="ticket-avatar {% if loop.first %}live{% endif %}">
+      <img src="{{ url_for('employee_photo', emp_code=r.emp_code) }}"
+           onerror="this.style.display='none'; this.parentElement.textContent='{{ r.name[0]|upper }}';">
+    </div>
+    <div class="ticket-body">
+      <div class="ticket-name">{{ r.name }}</div>
+      <div class="ticket-meta mono">{{ r.emp_code }} &nbsp;·&nbsp; {{ r.department or '—' }}</div>
+    </div>
+    <div class="ticket-time mono">{{ r.timestamp[11:19] }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state fade-in">
+  <div class="empty-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  </div>
+  No attendance recorded yet. Run <span class="mono">kiosk.py</span> and walk into frame.
+</div>
+{% endif %}
+
+{% endblock %}

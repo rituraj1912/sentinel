@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scan — Sentinel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="scan-body">
+  <div class="scan-page">
+    <a href="{{ url_for('login') }}" class="admin-corner-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Admin
+    </a>
+
+    <div class="scan-frame-wrap fade-in">
+      <div class="scan-banner" id="scanBanner">
+        <div style="display:flex; align-items:center; gap:9px;">
+          <div class="brand-badge" style="width:26px; height:26px; border-radius:7px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.25 3.75 9.75 8 11 4.25-1.25 8-5.75 8-11V5l-8-3Z"/><circle cx="12" cy="11" r="2.6"/></svg>
+          </div>
+          <span class="brand-name" style="font-size:16px;">Sentinel</span>
+        </div>
+        <div class="scan-pill" id="scanPill">
+          <span class="status-dot" id="scanDot"></span>
+          <span id="scanPillText">SCANNING</span>
+        </div>
+      </div>
+
+      <div class="capture-frame scan-video-frame" id="captureFrame">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <div class="bracket-corner bracket-tl" id="b1"></div>
+        <div class="bracket-corner bracket-tr" id="b2"></div>
+        <div class="bracket-corner bracket-bl" id="b3"></div>
+        <div class="bracket-corner bracket-br" id="b4"></div>
+        <div class="scan-clock mono" id="scanClock"></div>
+      </div>
+
+      <div class="welcome-card" id="welcomeCard" style="display:none;">
+        <div class="welcome-name" id="welcomeName"></div>
+        <div class="welcome-meta mono" id="welcomeMeta"></div>
+        <div class="welcome-confidence" id="welcomeConfidence"></div>
+      </div>
+
+      <div class="unknown-card" id="unknownCard" style="display:none;">
+        No matching employee found
+      </div>
+
+      {% if employee_count == 0 %}
+      <div class="unknown-card" style="display:block;">
+        No employees enrolled yet — ask an admin to add someone first.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureFrame = document.getElementById('captureFrame');
+    const scanPill = document.getElementById('scanPill');
+    const scanPillText = document.getElementById('scanPillText');
+    const scanDot = document.getElementById('scanDot');
+    const welcomeCard = document.getElementById('welcomeCard');
+    const welcomeName = document.getElementById('welcomeName');
+    const welcomeMeta = document.getElementById('welcomeMeta');
+    const welcomeConfidence = document.getElementById('welcomeConfidence');
+    const unknownCard = document.getElementById('unknownCard');
+    const brackets = ['b1','b2','b3','b4'].map(id => document.getElementById(id));
+    const scanClock = document.getElementById('scanClock');
+    const employeeCount = {{ employee_count }};
+
+    function tickClock() {
+      const now = new Date();
+      scanClock.textContent = now.toLocaleTimeString();
+      requestAnimationFrame(() => setTimeout(tickClock, 1000));
+    }
+    tickClock();
+
+    function setState(state) {
+      captureFrame.classList.remove('state-matched', 'state-unknown', 'state-scanning', 'state-verifying');
+      captureFrame.classList.add('state-' + state);
+      scanPill.classList.remove('pill-matched', 'pill-unknown', 'pill-scanning', 'pill-verifying');
+      scanPill.classList.add('pill-' + state);
+
+      if (state === 'matched') { scanPillText.textContent = 'ACCESS GRANTED'; }
+      else if (state === 'unknown') { scanPillText.textContent = 'NOT RECOGNIZED'; }
+      else if (state === 'verifying') { scanPillText.textContent = 'PLEASE BLINK'; }
+      else { scanPillText.textContent = 'SCANNING'; }
+    }
+
+    let stream = null;
+    let busy = false;
+    let holdUntil = 0;
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        video.srcObject = stream;
+        if (employeeCount > 0) {
+          setInterval(captureAndSend, 700);
+        }
+      } catch (err) {
+        captureFrame.innerHTML = '<div style="padding:20px; color:#ec7a68; font-size:14px;">Could not access webcam: ' + err.message + '</div>';
+      }
+    }
+
+    async function captureAndSend() {
+      if (busy || video.readyState < 2) return;
+      if (Date.now() < holdUntil) return;
+      busy = true;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+      try {
+        const res = await fetch('/api/recognize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: dataUrl })
+        });
+        const result = await res.json();
+
+        if (result.status === 'matched') {
+          setState('matched');
+          welcomeName.textContent = 'Welcome, ' + result.name;
+          welcomeMeta.textContent = result.emp_code + '  ·  ' + (result.department || '—');
+          welcomeConfidence.textContent = 'Match confidence: ' + result.confidence + '%';
+          welcomeCard.style.display = 'block';
+          unknownCard.style.display = 'none';
+          holdUntil = Date.now() + 2500;
+        } else if (result.status === 'verifying') {
+          setState('verifying');
+          welcomeName.textContent = result.name + ' — please blink';
+          welcomeMeta.textContent = result.emp_code + '  ·  ' + (result.department || '—');
+          welcomeConfidence.textContent = 'Confirming you\'re really here...';
+          welcomeCard.style.display = 'block';
+          unknownCard.style.display = 'none';
+        } else if (result.status === 'unknown') {
+          setState('unknown');
+          welcomeCard.style.display = 'none';
+          unknownCard.style.display = 'block';
+          holdUntil = Date.now() + 2000;
+        } else {
+          setState('scanning');
+          welcomeCard.style.display = 'none';
+          unknownCard.style.display = 'none';
+        }
+      } catch (err) {
+        // network hiccup — just try again next tick
+      }
+      busy = false;
+    }
+
+    setState('scanning');
+    startCamera();
+  </script>
+</body>
+</html>

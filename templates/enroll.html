@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Enroll employee — Sentinel{% endblock %}
+{% block content %}
+
+<div class="topbar fade-in">
+  <div>
+    <span class="eyebrow">Admin only</span>
+    <h1 class="page-title">Enroll employee</h1>
+  </div>
+  <a href="{{ url_for('employees') }}" class="btn btn-secondary">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    Cancel
+  </a>
+</div>
+
+<div class="card fade-in" style="max-width: 480px;">
+  <div class="capture-frame" id="captureFrame">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <img id="preview" style="display:none;">
+    <div class="bracket-corner bracket-tl" id="bracket1"></div>
+    <div class="bracket-corner bracket-tr" id="bracket2"></div>
+    <div class="bracket-corner bracket-bl" id="bracket3"></div>
+    <div class="bracket-corner bracket-br" id="bracket4"></div>
+    <div class="capture-hint" id="captureHint">Center your face in frame</div>
+  </div>
+
+  <div class="capture-row">
+    <button type="button" class="btn btn-secondary" id="captureBtn" style="flex:1; justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Capture photo
+    </button>
+    <button type="button" class="btn btn-secondary" id="retakeBtn" style="flex:1; justify-content:center; display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      Retake
+    </button>
+  </div>
+
+  <form method="POST" id="enrollForm">
+    <input type="hidden" name="image_data" id="imageData">
+
+    <div class="identity-header">
+      <div class="stat-icon" style="margin-bottom:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+      </div>
+      <div>
+        <div style="font-weight:600; font-size:14px;">Employee details</div>
+        <div style="font-size:12.5px; color:var(--text-tertiary);">Stored alongside the face encoding</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="emp_code">Employee ID</label>
+      <input type="text" id="emp_code" name="emp_code" placeholder="EMP001" required>
+    </div>
+    <div class="field">
+      <label for="name">Full name</label>
+      <input type="text" id="name" name="name" placeholder="Jane Doe" required>
+    </div>
+    <div class="field">
+      <label for="department">Department</label>
+      <input type="text" id="department" name="department" placeholder="Engineering">
+    </div>
+
+    <button type="submit" class="btn" id="submitBtn" disabled style="width:100%; justify-content:center;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Save employee
+    </button>
+  </form>
+</div>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const preview = document.getElementById('preview');
+const captureFrame = document.getElementById('captureFrame');
+const captureHint = document.getElementById('captureHint');
+const captureBtn = document.getElementById('captureBtn');
+const retakeBtn = document.getElementById('retakeBtn');
+const submitBtn = document.getElementById('submitBtn');
+const imageData = document.getElementById('imageData');
+const brackets = ['bracket1','bracket2','bracket3','bracket4'].map(id => document.getElementById(id));
+
+let stream = null;
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+    video.srcObject = stream;
+  } catch (err) {
+    captureFrame.innerHTML =
+      '<div style="padding:20px; color:#ec7a68; font-size:14px;">Could not access webcam: ' + err.message + '</div>';
+  }
+}
+
+captureBtn.addEventListener('click', () => {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+  preview.src = dataUrl;
+  imageData.value = dataUrl;
+
+  video.style.display = 'none';
+  preview.style.display = 'block';
+  captureFrame.classList.add('captured');
+  captureHint.textContent = 'Photo captured';
+  captureBtn.style.display = 'none';
+  retakeBtn.style.display = 'inline-flex';
+  submitBtn.disabled = false;
+
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+
+retakeBtn.addEventListener('click', () => {
+  preview.style.display = 'none';
+  video.style.display = 'block';
+  captureFrame.classList.remove('captured');
+  captureHint.textContent = 'Center your face in frame';
+  captureBtn.style.display = 'inline-flex';
+  retakeBtn.style.display = 'none';
+  submitBtn.disabled = true;
+  imageData.value = '';
+  startCamera();
+});
+
+startCamera();
+</script>
+
+{% endblock %}
