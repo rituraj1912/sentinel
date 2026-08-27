@@ -20,9 +20,9 @@ WORKDIR /app
 # this step only re-runs when requirements.txt actually changes)
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir dlib-bin \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir gunicorn
-
 # Now copy the rest of the application
 COPY . .
 
