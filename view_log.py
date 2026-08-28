@@ -8,10 +8,10 @@ Usage:
 
 import sys
 import os
-from datetime import datetime
 
 sys.path.append(os.path.dirname(__file__))
 from utils.db import init_db, get_attendance_log
+from utils.timezone import to_local_display
 
 
 def main():
@@ -23,13 +23,14 @@ def main():
         print("No attendance records yet.")
         return
 
-    print(f"{'Time':<20} {'Name':<20} {'Dept':<15} {'ID':<10} {'Type'}")
-    print("-" * 80)
+    print(f"{'Time (IST)':<24} {'Name':<20} {'Dept':<15} {'ID':<10} {'Type'}")
+    print("-" * 84)
     for r in rows:
-        ts = datetime.fromisoformat(r["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-        print(f"{ts:<20} {r['name']:<20} {(r['department'] or '-'):<15} "
+        ts = to_local_display(r["timestamp"])
+        print(f"{ts:<24} {r['name']:<20} {(r['department'] or '-'):<15} "
               f"{r['emp_code']:<10} {r['entry_type']}")
 
 
 if __name__ == "__main__":
     main()
+

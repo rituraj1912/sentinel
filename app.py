@@ -20,7 +20,8 @@ import io
 import time
 import base64
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
+from utils.timezone import now_utc, parse_stored, to_local_time_only, today_utc_range
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 import face_recognition
@@ -49,10 +50,10 @@ def get_stats():
     cur.execute("SELECT COUNT(*) as c FROM employees")
     total_employees = cur.fetchone()["c"]
 
-    today_str = date.today().isoformat()
+    start_utc, end_utc = today_utc_range()
     cur.execute(
-        "SELECT COUNT(DISTINCT employee_id) as c FROM attendance WHERE timestamp LIKE ?",
-        (f"{today_str}%",),
+        "SELECT COUNT(DISTINCT employee_id) as c FROM attendance WHERE timestamp >= ? AND timestamp <= ?",
+        (start_utc, end_utc),
     )
     checked_in_today = cur.fetchone()["c"]
     conn.close()
@@ -159,7 +160,7 @@ def api_recognize():
 
     logged_now = False
     last_seen = get_last_seen(emp["id"])
-    if last_seen is None or (datetime.now() - datetime.fromisoformat(last_seen)).total_seconds() > RE_LOG_COOLDOWN_SECONDS:
+    if last_seen is None or (now_utc() - parse_stored(last_seen)).total_seconds() > RE_LOG_COOLDOWN_SECONDS:
         log_attendance(emp["id"])
         logged_now = True
 
@@ -182,6 +183,8 @@ def api_recognize():
 def dashboard():
     stats = get_stats()
     recent = get_attendance_log(limit=15)
+    for r in recent:
+        r["time_local"] = to_local_time_only(r["timestamp"])
     return render_template("dashboard.html", stats=stats, recent=recent,
                             username=session.get("username"))
 
@@ -306,16 +309,18 @@ def settings():
 @app.route("/api/attendance/today")
 @login_required
 def api_attendance_today():
-    today_str = date.today().isoformat()
+    start_utc, end_utc = today_utc_range()
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT a.timestamp, e.name, e.department, e.emp_code
         FROM attendance a JOIN employees e ON a.employee_id = e.id
-        WHERE a.timestamp LIKE ?
+        WHERE a.timestamp >= ? AND a.timestamp <= ?
         ORDER BY a.timestamp DESC
-    """, (f"{today_str}%",))
+    """, (start_utc, end_utc))
     rows = [dict(r) for r in cur.fetchall()]
+    for r in rows:
+        r["time_local"] = to_local_time_only(r["timestamp"])
     conn.close()
     return jsonify(rows)
 
