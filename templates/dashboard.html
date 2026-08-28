@@ -53,7 +53,7 @@
       <div class="ticket-name">{{ r.name }}</div>
       <div class="ticket-meta mono">{{ r.emp_code }} &nbsp;·&nbsp; {{ r.department or '—' }}</div>
     </div>
-    <div class="ticket-time mono">{{ r.timestamp[11:19] }}</div>
+    <div class="ticket-time mono">{{ r.time_local }}</div>
   </div>
   {% endfor %}
 </div>

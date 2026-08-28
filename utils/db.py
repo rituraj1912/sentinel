@@ -9,7 +9,7 @@ Stores:
 import sqlite3
 import pickle
 import os
-from datetime import datetime
+from utils.timezone import now_utc_iso
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "attendance.db")
 
@@ -54,7 +54,7 @@ def add_employee(emp_code, name, department, encoding, photo_path=None):
         """INSERT INTO employees (emp_code, name, department, encoding, photo_path, created_at)
            VALUES (?, ?, ?, ?, ?, ?)""",
         (emp_code, name, department, pickle.dumps(encoding), photo_path,
-         datetime.now().isoformat()),
+         now_utc_iso()),
     )
     conn.commit()
     conn.close()
@@ -120,7 +120,7 @@ def log_attendance(employee_id, entry_type="entry"):
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO attendance (employee_id, timestamp, entry_type) VALUES (?, ?, ?)",
-        (employee_id, datetime.now().isoformat(), entry_type),
+        (employee_id, now_utc_iso(), entry_type),
     )
     conn.commit()
     conn.close()
