@@ -1,7 +1,6 @@
 # Sentinel — Face Attendance, production container for Render.
 # Uses a full build toolchain so dlib compiles reliably on Linux,
 # regardless of whether a precompiled wheel is available.
-
 FROM python:3.11-slim
 
 # System build tools dlib needs to compile from source
@@ -20,6 +19,10 @@ WORKDIR /app
 # instead of being buffered and possibly lost/delayed
 ENV PYTHONUNBUFFERED=1
 
+# Limit parallel compile jobs so dlib's build doesn't exceed available memory
+ENV CMAKE_BUILD_PARALLEL_LEVEL=1
+ENV MAKEFLAGS="-j1"
+
 # Install Python dependencies first (better Docker layer caching —
 # this step only re-runs when requirements.txt actually changes)
 COPY requirements.txt .
@@ -29,6 +32,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 # Now copy the rest of the application
 COPY . .
+RUN mkdir -p /app/data/photos
 
 # Render provides $PORT at runtime; gunicorn binds to it here
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 app:app
