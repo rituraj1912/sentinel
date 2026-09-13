@@ -1,12 +1,10 @@
 """
 db.py — SQLite database layer for the Face Attendance system.
-
 Stores:
   - employees(id, emp_code, name, department, encoding, photo_path, created_at)
   - attendance(id, employee_id, timestamp, entry_type)
   - settings(key, value)
 """
-
 import sqlite3
 import pickle
 import os
@@ -16,16 +14,18 @@ from utils.timezone import (
     to_local_time_only, to_local_display, today_local_date_str, DISPLAY_TZ
 )
 
+
+
+
+
+
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "attendance.db"))
-
-
+>>>>>>> d489e9593f23efbb1d5ae40d5f3b1ef02823ab45
 def get_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-
-
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
@@ -40,6 +40,7 @@ def init_db():
             created_at TEXT NOT NULL
         )
     """)
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -421,3 +422,4 @@ def get_export_rows(start_date=None, end_date=None, department=None):
             "Timestamp UTC": r["timestamp"]
         })
     return export_data
+
