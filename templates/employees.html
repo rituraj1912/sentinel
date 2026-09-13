@@ -1,54 +1,132 @@
 {% extends "base.html" %}
-{% block title %}Employees — Sentinel{% endblock %}
+{% block title %}Employees Directory — Sentinel Face Attendance{% endblock %}
 {% block content %}
 
 <div class="topbar fade-in">
   <div>
-    <span class="eyebrow">Directory</span>
-    <h1 class="page-title">Employees</h1>
+    <span class="eyebrow">Personnel Directory</span>
+    <h1 class="page-title">Enrolled Employees</h1>
   </div>
   <a href="{{ url_for('enroll_employee') }}" class="btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Enroll employee
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Enroll New Staff
   </a>
 </div>
 
+<!-- Search & Department Filter Bar -->
+<div class="card fade-in" style="padding:14px 18px; margin-bottom:24px;">
+  <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:240px; position:relative;">
+      <input type="text" id="employeeSearch" placeholder="Search by name, ID, or department..." oninput="filterEmployees()">
+    </div>
+    <div style="width:200px;">
+      <select id="departmentFilter" onchange="filterEmployees()">
+        <option value="all">All Departments</option>
+        {% for dept in departments %}
+          <option value="{{ dept }}">{{ dept }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</div>
+
 {% if employees %}
-<div class="ticket-list">
+<div class="ticket-list" id="employeeList">
   {% for e in employees %}
-  <div class="ticket fade-in ticket-no-divider">
+  <div class="ticket fade-in employee-card" data-name="{{ e.name|lower }}" data-code="{{ e.emp_code|lower }}" data-dept="{{ e.department|lower }}">
     <div class="ticket-avatar">
       {% if e.has_photo %}
-        <img src="{{ url_for('employee_photo', emp_code=e.emp_code) }}">
+        <img src="{{ url_for('employee_photo', emp_code=e.emp_code) }}" alt="{{ e.name }}">
       {% else %}
         {{ e.name[0]|upper }}
       {% endif %}
     </div>
+
     <div class="ticket-body">
-      <div class="ticket-name">{{ e.name }}</div>
-      <div class="ticket-meta mono">{{ e.emp_code }} &nbsp;·&nbsp; {{ e.department or '—' }}</div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="ticket-name">{{ e.name }}</span>
+        {% if e.status == 'In Office' %}
+          <span class="badge badge-in">IN OFFICE ({{ e.first_in }})</span>
+        {% elif e.status == 'Checked Out' %}
+          <span class="badge badge-out">CHECKED OUT ({{ e.duration }})</span>
+        {% else %}
+          <span class="badge badge-absent">NOT IN TODAY</span>
+        {% endif %}
+        {% if e.is_late %}
+          <span class="badge badge-late">LATE ARRIVAL</span>
+        {% endif %}
+      </div>
+      <div class="ticket-meta mono">
+        {{ e.emp_code }} &nbsp;·&nbsp; {{ e.department }}
+      </div>
     </div>
+
     <form method="POST" action="{{ url_for('delete_employee_route', emp_code=e.emp_code) }}"
-          onsubmit="return confirm('Remove {{ e.name }} ({{ e.emp_code }})? This also deletes their attendance history. This cannot be undone.');"
-          style="margin-left:auto; margin-right:6px;">
+          onsubmit="return confirm('Permanently remove {{ e.name }} ({{ e.emp_code }})? This also clears their attendance logs.');"
+          style="margin-left:auto;">
       <button type="submit" class="icon-btn-danger" title="Delete employee">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
       </button>
     </form>
   </div>
   {% endfor %}
 </div>
+
+<div id="noMatchState" class="empty-state fade-in" style="display:none;">
+  No matching employees found for your filter.
+</div>
+
 {% else %}
 <div class="empty-state fade-in">
   <div class="empty-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+    </svg>
   </div>
-  No employees enrolled yet.<br><br>
+  No staff members enrolled yet.<br><br>
   <a href="{{ url_for('enroll_employee') }}" class="btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Enroll your first employee
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Enroll First Employee
   </a>
 </div>
 {% endif %}
+
+<script>
+  function filterEmployees() {
+    const query = document.getElementById('employeeSearch').value.toLowerCase().trim();
+    const dept = document.getElementById('departmentFilter').value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.employee-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const name = card.getAttribute('data-name');
+      const code = card.getAttribute('data-code');
+      const cardDept = card.getAttribute('data-dept');
+
+      const matchesQuery = !query || name.includes(query) || code.includes(query) || cardDept.includes(query);
+      const matchesDept = (dept === 'all') || (cardDept === dept);
+
+      if (matchesQuery && matchesDept) {
+        card.style.display = 'flex';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    const noMatch = document.getElementById('noMatchState');
+    if (noMatch) {
+      noMatch.style.display = (visibleCount === 0 && cards.length > 0) ? 'block' : 'none';
+    }
+  }
+</script>
 
 {% endblock %}
