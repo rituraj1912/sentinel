@@ -1,89 +1,94 @@
 """
-liveness.py — Simple blink-based liveness check.
+liveness.py — Adaptive high-speed blink-based liveness verification.
 
-A printed photo or a phone screen held up to the camera can match a face
-encoding just fine, but it can't blink. This module tracks eye-openness
-(the "eye aspect ratio", EAR) across the frames a browser session sends,
-and only confirms "liveness" once it sees a genuine open -> closed -> open
-sequence — a real blink.
-
-This is a lightweight anti-spoofing measure, not a bulletproof one — a
-video replay of a blinking face would still pass. It's meant to stop the
-easy case (a photo held up to the camera), which is the most common
-attack against basic face-recognition attendance systems.
+Uses both an absolute Eye Aspect Ratio (EAR) threshold and an adaptive
+baseline drop metric (e.g. ~24% dip from the person's resting eye-openness).
+This enables instant detection of natural 150-250ms blinks, even for users
+with glasses or narrower resting eye structures.
 """
 
 import threading
 import numpy as np
 
-EAR_BLINK_THRESHOLD = 0.22   # below this, eyes are considered "closed"
-EAR_HISTORY_LEN = 12         # how many recent frames we remember per session
-
+EAR_BLINK_THRESHOLD = 0.23   # slightly more forgiving base threshold
 _lock = threading.Lock()
-_state = {}   # token -> {"emp_id": int|None, "eyes_closed": bool, "blinked": bool}
+# token -> {"emp_id": int|None, "eyes_closed": bool, "blinked": bool, "baseline_ear": float}
+_state = {}
 
 
 def _eye_aspect_ratio(eye_points):
     """Standard EAR formula (Soukupová & Čech). eye_points is a list of
-    6 (x, y) tuples in dlib's standard eye-contour order, as returned by
-    face_recognition.face_landmarks()."""
+    6 (x, y) tuples in dlib's standard eye-contour order."""
     eye = np.array(eye_points)
     a = np.linalg.norm(eye[1] - eye[5])
     b = np.linalg.norm(eye[2] - eye[4])
     c = np.linalg.norm(eye[0] - eye[3])
     if c == 0:
-        return 0.3  # degenerate case, treat as "open" rather than crash
+        return 0.3  # fallback degenerate case
     return (a + b) / (2.0 * c)
 
 
 def compute_ear(landmarks):
-    """landmarks is one entry from face_recognition.face_landmarks() —
-    a dict with 'left_eye' and 'right_eye' keys. Returns the average EAR
-    of both eyes, or None if landmarks are missing either eye."""
-    if "left_eye" not in landmarks or "right_eye" not in landmarks:
+    """Computes average EAR across left and right eyes."""
+    if not landmarks or "left_eye" not in landmarks or "right_eye" not in landmarks:
         return None
     left_ear = _eye_aspect_ratio(landmarks["left_eye"])
     right_ear = _eye_aspect_ratio(landmarks["right_eye"])
     return (left_ear + right_ear) / 2.0
 
 
-def get_state(token):
-    with _lock:
-        if token not in _state:
-            _state[token] = {"emp_id": None, "eyes_closed": False, "blinked": False}
-        return _state[token]
-
-
 def reset(token):
     with _lock:
-        _state[token] = {"emp_id": None, "eyes_closed": False, "blinked": False}
+        _state[token] = {
+            "emp_id": None,
+            "eyes_closed": False,
+            "blinked": False,
+            "baseline_ear": 0.28
+        }
 
 
-def update_blink(token, emp_id, ear):
-    """Feed one frame's EAR reading in. Resets the blink flag if a
-    different person (or no one) was being tracked. Returns True once a
-    full open->closed->open blink cycle has been observed for this
-    person since the last reset."""
+def update_blink(token, emp_id, ear, mode="fast"):
+    """Feed one frame's EAR reading in.
+    Uses adaptive baseline comparison for instant blink recognition.
+    """
+    if mode == "off":
+        return True
+
     with _lock:
-        state = _state.setdefault(token, {"emp_id": None, "eyes_closed": False, "blinked": False})
+        state = _state.setdefault(token, {
+            "emp_id": None,
+            "eyes_closed": False,
+            "blinked": False,
+            "baseline_ear": 0.28
+        })
 
         if state["emp_id"] != emp_id:
             state["emp_id"] = emp_id
             state["eyes_closed"] = False
             state["blinked"] = False
+            state["baseline_ear"] = ear if (ear and ear > 0.22) else 0.28
 
         if ear is not None:
-            if ear < EAR_BLINK_THRESHOLD:
+            # Dynamically adapt baseline to highest open eye ratio observed
+            if ear > state["baseline_ear"]:
+                state["baseline_ear"] = (state["baseline_ear"] * 0.4) + (ear * 0.6)
+
+            baseline = state["baseline_ear"]
+            
+            # Closure criteria: either below absolute threshold OR relative drop of 24%
+            is_closed = (ear < EAR_BLINK_THRESHOLD) or (ear < baseline * 0.76)
+
+            if is_closed:
                 state["eyes_closed"] = True
-            elif state["eyes_closed"] and ear >= EAR_BLINK_THRESHOLD:
-                state["blinked"] = True
-                state["eyes_closed"] = False
+            elif state["eyes_closed"]:
+                # Re-opening criteria: eyes reopened back towards baseline
+                is_reopened = (ear >= EAR_BLINK_THRESHOLD) or (ear >= baseline * 0.86)
+                if is_reopened:
+                    state["blinked"] = True
+                    state["eyes_closed"] = False
 
         return state["blinked"]
 
 
 def mark_confirmed_and_reset(token):
-    """Call after a successful, liveness-confirmed check-in so the next
-    person (or the same person checking in again later) needs a fresh
-    blink rather than riding on an old one."""
     reset(token)

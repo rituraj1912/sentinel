@@ -1,69 +1,242 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Sentinel{% endblock %}
+{% block title %}Dashboard — Sentinel Face Attendance{% endblock %}
 {% block content %}
 
 <div class="topbar fade-in">
   <div>
-    <span class="eyebrow"><span class="status-dot"></span> Live overview</span>
-    <h1 class="page-title">Dashboard</h1>
+    <span class="eyebrow"><span class="status-dot"></span> Live Operations</span>
+    <h1 class="page-title">Attendance Dashboard</h1>
   </div>
-  <div class="user-chip">
-    <div class="user-avatar">{{ username[0]|upper }}</div>
-    Signed in as <span class="mono">{{ username }}</span>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <button type="button" class="btn btn-secondary" onclick="openExportModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Export CSV
+    </button>
+    <div class="user-chip">
+      <div class="user-avatar">{{ username[0]|upper }}</div>
+      <span>Admin: <strong class="mono" style="color:#fff;">{{ username }}</strong></span>
+    </div>
   </div>
 </div>
 
+<!-- Key Performance Metrics Grid -->
 <div class="stat-row">
-  <div class="stat-card fade-in">
-    <div class="stat-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <div class="stat-card card-emerald fade-in">
+    <div class="stat-icon" style="color:var(--emerald); background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.25);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
     </div>
-    <div class="stat-label">Checked in today</div>
-    <div class="stat-value">{{ stats.checked_in_today }}<span class="unit">/ {{ stats.total_employees }}</span></div>
+    <div class="stat-label">Checked In Today</div>
+    <div class="stat-value" id="statCheckedIn">
+      {{ stats.checked_in_today }}
+      <span class="unit">/ {{ stats.total_employees }} enrolled</span>
+    </div>
   </div>
-  <div class="stat-card fade-in">
-    <div class="stat-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+  <div class="stat-card card-blue fade-in">
+    <div class="stat-icon" style="color:var(--blue); background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.25);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
     </div>
-    <div class="stat-label">Enrolled employees</div>
-    <div class="stat-value">{{ stats.total_employees }}</div>
+    <div class="stat-label">In Office Now</div>
+    <div class="stat-value" id="statInOffice">
+      {{ stats.currently_in_office }}
+      <span class="unit">active</span>
+    </div>
   </div>
-  <div class="stat-card fade-in">
-    <div class="stat-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M17 7V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2"/></svg>
+
+  <div class="stat-card card-purple fade-in">
+    <div class="stat-icon" style="color:var(--purple); background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.25);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
     </div>
-    <div class="stat-label">Recognition source</div>
-    <div class="stat-value" style="font-size: 19px;">kiosk.py <span class="unit">webcam</span></div>
+    <div class="stat-label">Checked Out</div>
+    <div class="stat-value" id="statCheckedOut">
+      {{ stats.checked_out_today }}
+      <span class="unit">departed</span>
+    </div>
+  </div>
+
+  <div class="stat-card card-amber fade-in">
+    <div class="stat-icon" style="color:var(--amber); background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.25);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div class="stat-label">Late Arrivals</div>
+    <div class="stat-value" id="statLate">
+      {{ stats.late_today }}
+      <span class="unit">after {{ stats.late_cutoff_time }}</span>
+    </div>
   </div>
 </div>
 
-<div class="section-title">
-  <span class="status-dot"></span> Recent check-ins
+<!-- Real-time Punches Feed Section -->
+<div class="section-bar">
+  <div class="section-title">
+    <span class="status-dot"></span> Live Recognition Feed
+  </div>
+  <div style="font-size:12px; color:var(--text-tertiary);" class="mono">
+    Auto-refreshing every 4s
+  </div>
 </div>
 
-{% if recent %}
-<div class="ticket-list">
-  {% for r in recent %}
-  <div class="ticket fade-in">
-    <div class="ticket-avatar {% if loop.first %}live{% endif %}">
-      <img src="{{ url_for('employee_photo', emp_code=r.emp_code) }}"
-           onerror="this.style.display='none'; this.parentElement.textContent='{{ r.name[0]|upper }}';">
+<div class="ticket-list" id="recentList">
+  {% if recent %}
+    {% for r in recent %}
+    <div class="ticket fade-in">
+      <div class="ticket-avatar {% if loop.first %}live{% endif %}">
+        <img src="{{ url_for('employee_photo', emp_code=r.emp_code) }}"
+             onerror="this.style.display='none'; this.parentElement.textContent='{{ r.name[0]|upper }}';">
+      </div>
+      <div class="ticket-body">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="ticket-name">{{ r.name }}</span>
+          {% if r.entry_type == 'in' %}
+            <span class="badge badge-in">CHECK IN</span>
+          {% else %}
+            <span class="badge badge-out">CHECK OUT</span>
+          {% endif %}
+        </div>
+        <div class="ticket-meta mono">
+          {{ r.emp_code }} &nbsp;·&nbsp; {{ r.department or 'General' }}
+        </div>
+      </div>
+      <div class="ticket-time mono">
+        <div style="font-weight:600; color:var(--text-primary);">{{ r.time_local }}</div>
+        <div style="font-size:11px; color:var(--text-tertiary);">{{ r.date_local }}</div>
+      </div>
     </div>
-    <div class="ticket-body">
-      <div class="ticket-name">{{ r.name }}</div>
-      <div class="ticket-meta mono">{{ r.emp_code }} &nbsp;·&nbsp; {{ r.department or '—' }}</div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state fade-in">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      No attendance recorded today yet.<br>
+      Open the <a href="{{ url_for('index') }}" target="_blank" style="text-decoration:underline;">Live Kiosk</a> to start scanning.
     </div>
-    <div class="ticket-time mono">{{ r.time_local }}</div>
-  </div>
-  {% endfor %}
+  {% endif %}
 </div>
-{% else %}
-<div class="empty-state fade-in">
-  <div class="empty-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+
+<!-- Export Attendance CSV Modal -->
+<div id="exportModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content fade-in">
+    <div class="section-bar" style="margin-bottom:20px;">
+      <h3 style="font-size:18px;">Export Attendance Report</h3>
+      <button type="button" class="icon-btn-danger" onclick="closeExportModal()" style="font-size:20px;">&times;</button>
+    </div>
+
+    <form method="GET" action="{{ url_for('export_csv') }}">
+      <div class="field">
+        <label for="start_date">Start Date</label>
+        <input type="date" id="start_date" name="start_date">
+      </div>
+      <div class="field">
+        <label for="end_date">End Date</label>
+        <input type="date" id="end_date" name="end_date">
+      </div>
+      <div class="field">
+        <label for="department">Department</label>
+        <select id="department" name="department">
+          <option value="all">All Departments</option>
+          <option value="Engineering">Engineering</option>
+          <option value="Product">Product</option>
+          <option value="Design">Design</option>
+          <option value="Marketing">Marketing</option>
+          <option value="Sales">Sales</option>
+          <option value="HR">HR</option>
+          <option value="Operations">Operations</option>
+        </select>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
+        <button type="button" class="btn btn-secondary" onclick="closeExportModal()">Cancel</button>
+        <button type="submit" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download CSV
+        </button>
+      </div>
+    </form>
   </div>
-  No attendance recorded yet. Run <span class="mono">kiosk.py</span> and walk into frame.
 </div>
-{% endif %}
+
+<script>
+  function openExportModal() {
+    document.getElementById('exportModal').style.display = 'flex';
+  }
+  function closeExportModal() {
+    document.getElementById('exportModal').style.display = 'none';
+  }
+
+  // Live auto-polling for dashboard updates
+  async function pollLiveAttendance() {
+    try {
+      const res = await fetch('/api/attendance/live');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // Update stat counters
+      document.getElementById('statCheckedIn').innerHTML = `${data.stats.checked_in_today} <span class="unit">/ ${data.stats.total_employees} enrolled</span>`;
+      document.getElementById('statInOffice').innerHTML = `${data.stats.currently_in_office} <span class="unit">active</span>`;
+      document.getElementById('statCheckedOut').innerHTML = `${data.stats.checked_out_today} <span class="unit">departed</span>`;
+      document.getElementById('statLate').innerHTML = `${data.stats.late_today} <span class="unit">after ${data.stats.late_cutoff_time}</span>`;
+
+      // Update recent list if items exist
+      if (data.recent && data.recent.length > 0) {
+        const container = document.getElementById('recentList');
+        let html = '';
+        data.recent.forEach((r, idx) => {
+          const isLive = (idx === 0) ? 'live' : '';
+          const badgeClass = (r.entry_type === 'in') ? 'badge-in' : 'badge-out';
+          const punchText = (r.entry_type === 'in') ? 'CHECK IN' : 'CHECK OUT';
+          const initial = r.name ? r.name[0].toUpperCase() : '?';
+
+          html += `
+            <div class="ticket fade-in">
+              <div class="ticket-avatar ${isLive}">
+                <img src="/employees/photo/${r.emp_code}" onerror="this.style.display='none'; this.parentElement.textContent='${initial}';">
+              </div>
+              <div class="ticket-body">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="ticket-name">${r.name}</span>
+                  <span class="badge ${badgeClass}">${punchText}</span>
+                </div>
+                <div class="ticket-meta mono">${r.emp_code} &nbsp;·&nbsp; ${r.department || 'General'}</div>
+              </div>
+              <div class="ticket-time mono">
+                <div style="font-weight:600; color:var(--text-primary);">${r.time_local}</div>
+                <div style="font-size:11px; color:var(--text-tertiary);">${r.date_local}</div>
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      }
+    } catch (e) {
+      console.warn('Dashboard poll error:', e);
+    }
+  }
+
+  setInterval(pollLiveAttendance, 4000);
+</script>
 
 {% endblock %}

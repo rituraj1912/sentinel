@@ -1,80 +1,206 @@
 {% extends "base.html" %}
-{% block title %}Settings — Sentinel{% endblock %}
+{% block title %}Settings — Sentinel Face Attendance{% endblock %}
 {% block content %}
 
 <div class="topbar fade-in">
   <div>
-    <span class="eyebrow">Admin only</span>
+    <span class="eyebrow">System Configuration</span>
     <h1 class="page-title">Settings</h1>
   </div>
   <div class="user-chip">
     <div class="user-avatar">{{ username[0]|upper }}</div>
-    Signed in as <span class="mono">{{ username }}</span>
+    <span>Admin: <strong class="mono" style="color:#fff;">{{ username }}</strong></span>
   </div>
 </div>
 
-<div class="card fade-in" style="max-width: 480px; margin-bottom: 24px;">
-  <div class="identity-header">
-    <div class="stat-icon" style="margin-bottom:0;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </div>
-    <div>
-      <div style="font-weight:600; font-size:14px;">Change admin password</div>
-      <div style="font-size:12.5px; color:var(--text-tertiary);">You'll stay signed in after this</div>
-    </div>
-  </div>
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:24px; align-items:start;">
 
-  <form method="POST">
-    <input type="hidden" name="action" value="change_password">
-
-    <div class="field">
-      <label for="current_password">Current password</label>
-      <input type="password" id="current_password" name="current_password" autocomplete="current-password" required>
-    </div>
-    <div class="field">
-      <label for="new_password">New password</label>
-      <input type="password" id="new_password" name="new_password" autocomplete="new-password" minlength="6" required>
-    </div>
-    <div class="field">
-      <label for="confirm_password">Confirm new password</label>
-      <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" minlength="6" required>
+  <!-- Shift & System Rules Card -->
+  <div class="card fade-in">
+    <div class="section-title" style="margin-bottom:18px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--emerald);">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Attendance & Shift Rules
     </div>
 
-    <button type="submit" class="btn" style="width:100%; justify-content:center;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      Update password
-    </button>
-  </form>
-</div>
+    <form method="POST">
+      <input type="hidden" name="action" value="update_settings">
 
-<div class="card fade-in" style="max-width: 480px; border-color: rgba(236,122,104,0.25);">
-  <div class="identity-header" style="border-bottom-color: rgba(236,122,104,0.2);">
-    <div class="stat-icon" style="margin-bottom:0; color: var(--danger); background: rgba(236,122,104,0.12);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-    </div>
-    <div>
-      <div style="font-weight:600; font-size:14px;">Danger zone</div>
-      <div style="font-size:12.5px; color:var(--text-tertiary);">These actions can't be undone</div>
-    </div>
-  </div>
-
-  <form method="POST" onsubmit="return confirm('Clear all attendance history? Enrolled employees will not be affected. This cannot be undone.');">
-    <input type="hidden" name="action" value="clear_attendance">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:16px;">
-      <div>
-        <div style="font-size:13.5px; color:var(--text-primary); font-weight:500;">Clear attendance history</div>
-        <div style="font-size:12px; color:var(--text-tertiary); margin-top:2px;">Removes all check-in records. Employees stay enrolled.</div>
+      <div class="field">
+        <label for="late_cutoff_time">Daily Late Arrival Cutoff (HH:MM)</label>
+        <input type="time" id="late_cutoff_time" name="late_cutoff_time" value="{{ settings.late_cutoff_time or '09:30' }}" required>
+        <small style="color:var(--text-tertiary); font-size:11.5px; margin-top:4px; display:block;">
+          Check-ins after this time are marked as late arrivals.
+        </small>
       </div>
-      <button type="submit" class="btn btn-secondary" style="flex-shrink:0; color: var(--danger); border-color: rgba(236,122,104,0.3);">
-        Clear history
-      </button>
-    </div>
-  </form>
 
-  <div style="margin-top:18px; padding-top:18px; border-top:1px solid var(--line); font-size:12px; color:var(--text-tertiary);">
-    To remove a specific employee (and their history), go to
-    <a href="{{ url_for('employees') }}">Employees</a> and use the delete icon on their row.
+      <div class="field">
+        <label for="liveness_mode">Blink Liveness Anti-Spoofing</label>
+        <select id="liveness_mode" name="liveness_mode">
+          <option value="fast" {% if settings.liveness_mode == 'fast' or not settings.liveness_mode %}selected{% endif %}>Fast Adaptive (Detects Natural 150-250ms Blinks - Recommended)</option>
+          <option value="strict" {% if settings.liveness_mode == 'strict' %}selected{% endif %}>Strict (Requires Full Eye Closure Hold)</option>
+          <option value="off" {% if settings.liveness_mode == 'off' %}selected{% endif %}>Disabled (Instant Match, No Blink Required)</option>
+        </select>
+        <small style="color:var(--text-tertiary); font-size:11.5px; margin-top:4px; display:block;">
+          Adjusts anti-spoofing verification speed. "Fast" uses adaptive baseline tracking for instant response.
+        </small>
+      </div>
+
+      <div class="field">
+        <label for="cooldown_seconds">Scan Cooldown Window (Seconds)</label>
+        <input type="text" id="cooldown_seconds" name="cooldown_seconds" value="{{ settings.cooldown_seconds or '120' }}" required>
+        <small style="color:var(--text-tertiary); font-size:11.5px; margin-top:4px; display:block;">
+          Prevents the same user from double-logging if standing by the lens.
+        </small>
+      </div>
+
+      <div class="field" style="margin-top:20px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" name="voice_greeting" value="1" {% if settings.voice_greeting == 'true' %}checked{% endif %}>
+          <span>Enable Web Speech voice greetings on kiosk</span>
+        </label>
+      </div>
+
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" name="sound_chime" value="1" {% if settings.sound_chime == 'true' %}checked{% endif %}>
+          <span>Enable synthesized audio chimes</span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn" style="width:100%; justify-content:center; margin-top:16px;">
+        Save Attendance Rules
+      </button>
+    </form>
   </div>
+
+  <!-- Webhook Alerts Card -->
+  <div class="card fade-in">
+    <div class="section-title" style="margin-bottom:18px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--blue);">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      Webhook & Team Alerts
+    </div>
+
+    <form method="POST">
+      <input type="hidden" name="action" value="update_settings">
+      <!-- Preserve other settings in form -->
+      <input type="hidden" name="late_cutoff_time" value="{{ settings.late_cutoff_time or '09:30' }}">
+      <input type="hidden" name="cooldown_seconds" value="{{ settings.cooldown_seconds or '120' }}">
+      {% if settings.voice_greeting == 'true' %}<input type="hidden" name="voice_greeting" value="1">{% endif %}
+      {% if settings.sound_chime == 'true' %}<input type="hidden" name="sound_chime" value="1">{% endif %}
+
+      <div class="field">
+        <label for="webhook_url">Webhook Endpoint (Slack, Discord, or Custom URL)</label>
+        <input type="text" id="webhook_url" name="webhook_url" value="{{ settings.webhook_url or '' }}" placeholder="https://discord.com/api/webhooks/...">
+        <small style="color:var(--text-tertiary); font-size:11.5px; margin-top:4px; display:block;">
+          Dispatches instant notifications on check-in, check-out, and late arrivals.
+        </small>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:18px;">
+        <button type="button" class="btn btn-secondary" onclick="sendTestWebhook()" style="flex:1; justify-content:center;">
+          Test Webhook
+        </button>
+        <button type="submit" class="btn" style="flex:1; justify-content:center;">
+          Save Webhook
+        </button>
+      </div>
+      <div id="webhookFeedback" style="font-size:12.5px; margin-top:10px; display:none;"></div>
+    </form>
+  </div>
+
+  <!-- Admin Password Card -->
+  <div class="card fade-in">
+    <div class="section-title" style="margin-bottom:18px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--purple);">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      Admin Password
+    </div>
+
+    <form method="POST">
+      <input type="hidden" name="action" value="change_password">
+
+      <div class="field">
+        <label for="current_password">Current password</label>
+        <input type="password" id="current_password" name="current_password" required>
+      </div>
+      <div class="field">
+        <label for="new_password">New password</label>
+        <input type="password" id="new_password" name="new_password" minlength="6" required>
+      </div>
+      <div class="field">
+        <label for="confirm_password">Confirm new password</label>
+        <input type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+      </div>
+
+      <button type="submit" class="btn btn-secondary" style="width:100%; justify-content:center;">
+        Update Password
+      </button>
+    </form>
+  </div>
+
+  <!-- Danger Zone Card -->
+  <div class="card fade-in" style="border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.05);">
+    <div class="section-title" style="margin-bottom:18px; color:#f87171;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px; color:var(--danger);">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Danger Zone
+    </div>
+
+    <form method="POST" onsubmit="return confirm('Wipe all attendance log history? Enrolled employees will not be deleted.');">
+      <input type="hidden" name="action" value="clear_attendance">
+      <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">
+        Clears all historical punches and attendance summaries. Enrolled staff biometric profiles remain intact.
+      </div>
+      <button type="submit" class="btn btn-danger" style="width:100%; justify-content:center;">
+        Clear All Attendance Logs
+      </button>
+    </form>
+  </div>
+
 </div>
+
+<script>
+  async function sendTestWebhook() {
+    const url = document.getElementById('webhook_url').value.trim();
+    const feedback = document.getElementById('webhookFeedback');
+    feedback.style.display = 'block';
+    feedback.style.color = 'var(--text-tertiary)';
+    feedback.textContent = 'Sending test ping...';
+
+    if (!url) {
+      feedback.style.color = 'var(--danger)';
+      feedback.textContent = 'Please enter a webhook URL first.';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/test-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhook_url: url })
+      });
+      const data = await res.json();
+      if (data.success) {
+        feedback.style.color = '#34d399';
+        feedback.textContent = '✓ ' + data.message;
+      } else {
+        feedback.style.color = '#f87171';
+        feedback.textContent = '✗ ' + data.message;
+      }
+    } catch (err) {
+      feedback.style.color = '#f87171';
+      feedback.textContent = '✗ Network error sending test request.';
+    }
+  }
+</script>
 
 {% endblock %}

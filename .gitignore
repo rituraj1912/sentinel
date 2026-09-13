@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 data/attendance.db
 data/photos/*.jpg
+.agents/

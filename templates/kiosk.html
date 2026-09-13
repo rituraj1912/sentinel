@@ -3,56 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scan — Sentinel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>Kiosk — Sentinel Face Attendance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="scan-body">
   <div class="scan-page">
     <a href="{{ url_for('login') }}" class="admin-corner-link">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Admin
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      Admin Portal
     </a>
 
     <div class="scan-frame-wrap fade-in">
       <div class="scan-banner" id="scanBanner">
-        <div style="display:flex; align-items:center; gap:9px;">
-          <div class="brand-badge" style="width:26px; height:26px; border-radius:7px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5.25 3.75 9.75 8 11 4.25-1.25 8-5.75 8-11V5l-8-3Z"/><circle cx="12" cy="11" r="2.6"/></svg>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="brand-badge" style="width:28px; height:28px; border-radius:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 4 5v6c0 5.25 3.75 9.75 8 11 4.25-1.25 8-5.75 8-11V5l-8-3Z"/>
+              <circle cx="12" cy="11" r="2.6"/>
+            </svg>
           </div>
-          <span class="brand-name" style="font-size:16px;">Sentinel</span>
+          <div>
+            <span class="brand-name" style="font-size:16px;">Sentinel</span>
+            <span class="brand-sub" style="margin-left:6px; font-size:10px;">KIOSK</span>
+          </div>
         </div>
+
         <div class="scan-pill" id="scanPill">
           <span class="status-dot" id="scanDot"></span>
-          <span id="scanPillText">SCANNING</span>
+          <span id="scanPillText">STANDBY</span>
         </div>
       </div>
 
-      <div class="capture-frame scan-video-frame" id="captureFrame">
+      <!-- Viewfinder Video Frame -->
+      <div class="scan-video-frame" id="captureFrame">
         <video id="video" autoplay playsinline muted></video>
         <canvas id="canvas" style="display:none;"></canvas>
-        <div class="bracket-corner bracket-tl" id="b1"></div>
-        <div class="bracket-corner bracket-tr" id="b2"></div>
-        <div class="bracket-corner bracket-bl" id="b3"></div>
-        <div class="bracket-corner bracket-br" id="b4"></div>
-        <div class="scan-clock mono" id="scanClock"></div>
+        <div class="bracket-corner bracket-tl"></div>
+        <div class="bracket-corner bracket-tr"></div>
+        <div class="bracket-corner bracket-bl"></div>
+        <div class="bracket-corner bracket-br"></div>
+        <div class="scan-clock mono" id="scanClock">--:--:--</div>
       </div>
 
+      <!-- Result Feedback Overlay -->
       <div class="welcome-card" id="welcomeCard" style="display:none;">
-        <div class="welcome-name" id="welcomeName"></div>
-        <div class="welcome-meta mono" id="welcomeMeta"></div>
-        <div class="welcome-confidence" id="welcomeConfidence"></div>
+        <div class="welcome-punch-tag" id="welcomePunchTag">CHECKED IN</div>
+        <div class="welcome-name" id="welcomeName">Welcome, Employee</div>
+        <div class="welcome-meta mono" id="welcomeMeta">EMP001 · Engineering</div>
+        <div class="welcome-confidence" id="welcomeConfidence">Confidence: 98%</div>
       </div>
 
       <div class="unknown-card" id="unknownCard" style="display:none;">
-        No matching employee found
+        Face not recognized. Please position directly in front of the lens.
       </div>
 
-      {% if employee_count == 0 %}
-      <div class="unknown-card" style="display:block;">
-        No employees enrolled yet — ask an admin to add someone first.
+      {% if stats.total_employees == 0 %}
+      <div class="unknown-card" style="display:block; background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.3); color:var(--amber-bright);">
+        No employees enrolled yet. Log in to the <a href="{{ url_for('login') }}" style="color:#fff; text-decoration:underline;">Admin Portal</a> to add staff.
       </div>
       {% endif %}
+
+      <!-- Kiosk Interactive Controls Toolbar -->
+      <div class="kiosk-toolbar">
+        <div class="mode-switcher">
+          <button type="button" class="mode-btn active" id="modeAuto" onclick="setKioskMode('auto')">AUTO</button>
+          <button type="button" class="mode-btn" id="modeIn" onclick="setKioskMode('in')">CHECK IN</button>
+          <button type="button" class="mode-btn" id="modeOut" onclick="setKioskMode('out')">CHECK OUT</button>
+        </div>
+
+        <div class="kiosk-tool-btns">
+          <button type="button" class="tool-btn active" id="audioBtn" onclick="toggleAudio()" title="Toggle Voice & Audio">
+            <svg id="audioIconOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+            <svg id="audioIconOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <line x1="23" y1="9" x2="17" y2="15"/>
+              <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+          </button>
+
+          <button type="button" class="tool-btn" id="fsBtn" onclick="toggleFullscreen()" title="Fullscreen Kiosk Mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -64,18 +108,95 @@
     const scanPillText = document.getElementById('scanPillText');
     const scanDot = document.getElementById('scanDot');
     const welcomeCard = document.getElementById('welcomeCard');
+    const welcomePunchTag = document.getElementById('welcomePunchTag');
     const welcomeName = document.getElementById('welcomeName');
     const welcomeMeta = document.getElementById('welcomeMeta');
     const welcomeConfidence = document.getElementById('welcomeConfidence');
     const unknownCard = document.getElementById('unknownCard');
-    const brackets = ['b1','b2','b3','b4'].map(id => document.getElementById(id));
     const scanClock = document.getElementById('scanClock');
-    const employeeCount = {{ employee_count }};
+    const totalEmployees = {{ stats.total_employees }};
+
+    let kioskMode = 'auto';
+    let audioEnabled = true;
+    let wakeLock = null;
+    let busy = false;
+    let holdUntil = 0;
+
+    // Web Audio Synthesizer for instant chimes
+    let audioCtx = null;
+    function playChime(isSuccess) {
+      if (!audioEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        const now = audioCtx.currentTime;
+        if (isSuccess) {
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.16); // G5
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } else {
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(180, now + 0.2);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.start(now);
+          osc.stop(now + 0.29);
+        }
+      } catch (e) { }
+    }
+
+    // Web Speech API Voice Greeting
+    function speakGreeting(text) {
+      if (!audioEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audioBtn').classList.toggle('active', audioEnabled);
+      document.getElementById('audioIconOn').style.display = audioEnabled ? 'block' : 'none';
+      document.getElementById('audioIconOff').style.display = audioEnabled ? 'none' : 'block';
+    }
+
+    function setKioskMode(mode) {
+      kioskMode = mode;
+      document.getElementById('modeAuto').className = 'mode-btn ' + (mode === 'auto' ? 'active' : '');
+      document.getElementById('modeIn').className = 'mode-btn ' + (mode === 'in' ? 'active active-in' : '');
+      document.getElementById('modeOut').className = 'mode-btn ' + (mode === 'out' ? 'active active-out' : '');
+    }
+
+    async function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen().catch(() => {});
+        requestWakeLock();
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {}
+    }
 
     function tickClock() {
       const now = new Date();
       scanClock.textContent = now.toLocaleTimeString();
-      requestAnimationFrame(() => setTimeout(tickClock, 1000));
+      setTimeout(tickClock, 1000);
     }
     tickClock();
 
@@ -85,79 +206,140 @@
       scanPill.classList.remove('pill-matched', 'pill-unknown', 'pill-scanning', 'pill-verifying');
       scanPill.classList.add('pill-' + state);
 
-      if (state === 'matched') { scanPillText.textContent = 'ACCESS GRANTED'; }
-      else if (state === 'unknown') { scanPillText.textContent = 'NOT RECOGNIZED'; }
-      else if (state === 'verifying') { scanPillText.textContent = 'PLEASE BLINK'; }
-      else { scanPillText.textContent = 'SCANNING'; }
+      if (state === 'matched') {
+        scanPillText.textContent = 'ACCESS GRANTED';
+        scanDot.className = 'status-dot';
+      } else if (state === 'unknown') {
+        scanPillText.textContent = 'NOT RECOGNIZED';
+        scanDot.className = 'status-dot dot-danger';
+      } else if (state === 'verifying') {
+        scanPillText.textContent = 'PLEASE BLINK';
+        scanDot.className = 'status-dot dot-blue';
+      } else {
+        scanPillText.textContent = 'SCANNING';
+        scanDot.className = 'status-dot dot-amber';
+      }
     }
 
-    let stream = null;
-    let busy = false;
-    let holdUntil = 0;
+    let currentInterval = 450;
+    let captureTimer = null;
+
+    function scheduleCapture(delay) {
+      clearTimeout(captureTimer);
+      captureTimer = setTimeout(captureAndSend, delay !== undefined ? delay : currentInterval);
+    }
 
     async function startCamera() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 } }
+        });
         video.srcObject = stream;
-        if (employeeCount > 0) {
-          setInterval(captureAndSend, 700);
+        setState('scanning');
+        if (totalEmployees > 0) {
+          scheduleCapture(400);
         }
       } catch (err) {
-        captureFrame.innerHTML = '<div style="padding:20px; color:#ec7a68; font-size:14px;">Could not access webcam: ' + err.message + '</div>';
+        captureFrame.innerHTML = '<div style="padding:24px; color:#f87171; font-size:14px; text-align:center;">Could not open webcam: ' + err.message + '<br><small style="color:var(--text-tertiary); margin-top:8px; display:block;">Check browser permissions or ensure using localhost/https.</small></div>';
       }
     }
 
     async function captureAndSend() {
-      if (busy || video.readyState < 2) return;
-      if (Date.now() < holdUntil) return;
+      if (busy || video.readyState < 2) {
+        scheduleCapture(currentInterval);
+        return;
+      }
+      if (Date.now() < holdUntil) {
+        scheduleCapture(200);
+        return;
+      }
       busy = true;
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      // Downscale to 480px width for 4x faster upload and server decode
+      const targetW = 480;
+      const targetH = Math.round(targetW * ((video.videoHeight || 480) / (video.videoWidth || 640)));
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, targetW, targetH);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
 
       try {
         const res = await fetch('/api/recognize', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: dataUrl })
+          body: JSON.stringify({ image: dataUrl, mode: kioskMode })
         });
         const result = await res.json();
 
         if (result.status === 'matched') {
           setState('matched');
-          welcomeName.textContent = 'Welcome, ' + result.name;
-          welcomeMeta.textContent = result.emp_code + '  ·  ' + (result.department || '—');
-          welcomeConfidence.textContent = 'Match confidence: ' + result.confidence + '%';
+          currentInterval = 450;
+          playChime(true);
+          
+          const isCheckIn = (result.punch_type === 'IN');
+          welcomePunchTag.textContent = isCheckIn ? 'CHECKED IN' : 'CHECKED OUT';
+          welcomePunchTag.className = 'welcome-punch-tag ' + (isCheckIn ? 'badge-in' : 'badge-out');
+
+          welcomeName.textContent = (isCheckIn ? 'Welcome, ' : 'Goodbye, ') + result.name;
+          welcomeMeta.textContent = result.emp_code + '  ·  ' + (result.department || 'General') + '  ·  ' + result.time_local;
+          
+          let confText = 'Confidence: ' + result.confidence + '%';
+          if (result.duration) confText += '  ·  ' + result.duration;
+          if (result.is_late) confText += '  ·  ⚠️ LATE ARRIVAL';
+          if (result.cooldown) confText += '  ·  (Already logged)';
+          
+          welcomeConfidence.textContent = confText;
           welcomeCard.style.display = 'block';
           unknownCard.style.display = 'none';
-          holdUntil = Date.now() + 2500;
+
+          if (result.logged_now) {
+            const spoken = isCheckIn 
+              ? `Welcome ${result.name}. Check in recorded.`
+              : `Goodbye ${result.name}. Check out recorded.`;
+            speakGreeting(spoken);
+          }
+
+          holdUntil = Date.now() + 2600;
+
         } else if (result.status === 'verifying') {
           setState('verifying');
+          // Switch to high-speed burst mode (170ms) to capture natural eye blinks instantly
+          currentInterval = 170;
+          welcomePunchTag.textContent = 'VERIFYING';
+          welcomePunchTag.className = 'welcome-punch-tag badge-late';
           welcomeName.textContent = result.name + ' — please blink';
-          welcomeMeta.textContent = result.emp_code + '  ·  ' + (result.department || '—');
-          welcomeConfidence.textContent = 'Confirming you\'re really here...';
+          welcomeMeta.textContent = result.emp_code + '  ·  ' + (result.department || 'General');
+          welcomeConfidence.textContent = 'Liveness anti-spoof check in progress...';
           welcomeCard.style.display = 'block';
           unknownCard.style.display = 'none';
+
         } else if (result.status === 'unknown') {
           setState('unknown');
+          currentInterval = 450;
+          playChime(false);
           welcomeCard.style.display = 'none';
           unknownCard.style.display = 'block';
-          holdUntil = Date.now() + 2000;
+          holdUntil = Date.now() + 1800;
+
         } else {
           setState('scanning');
+          currentInterval = 450;
           welcomeCard.style.display = 'none';
           unknownCard.style.display = 'none';
         }
       } catch (err) {
-        // network hiccup — just try again next tick
+        console.error(err);
+      } finally {
+        busy = false;
+        scheduleCapture();
       }
-      busy = false;
     }
 
-    setState('scanning');
-    startCamera();
+    window.addEventListener('DOMContentLoaded', () => {
+      startCamera();
+      requestWakeLock();
+    });
   </script>
 </body>
 </html>

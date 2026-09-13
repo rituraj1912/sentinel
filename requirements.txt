@@ -5,3 +5,4 @@ Pillow
 Flask>=3.0
 Werkzeug>=3.0
 gunicorn>=21.0
+requests>=2.28

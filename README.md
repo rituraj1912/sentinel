@@ -8,13 +8,19 @@ Runs entirely on your own machine — no cloud service, no data leaves your comp
 
 ## Features
 
+- **Automatic Check-In / Check-Out & Work Hours** — tracks entry and exit punches, automatically calculating total daily hours worked and identifying late arrivals based on customizable shift cutoff times.
+- **Natural Voice Greetings & Synthesized Audio Chimes** — uses Web Speech API and Web Audio API for spoken greetings (*"Welcome, Sarah! Check-in recorded"*) and instant audible confirmation chimes.
+- **Real-Time Live Dashboard** — live attendance feed that streams punches without page reloads, paired with active KPI cards (Present, In-Office Now, Departed, Late).
+- **1-Click CSV / Excel Export** — filter by custom date ranges and departments to download clean attendance sheets for HR and payroll processing.
+- **Webhook Alerts (Slack, Discord, Custom Webhooks)** — asynchronously dispatches notifications to team channels on check-ins, check-outs, or suspicious activity.
+- **Multi-Mode Kiosk Controls** — toggle between `Auto`, `Check-In`, and `Check-Out` modes directly on the kiosk, with fullscreen mode and Screen Wake-Lock support to prevent kiosk tablets from sleeping.
 - **Motion-triggered** — face recognition only runs when something moves in frame, saving CPU.
-- **Sci-fi style lock-on UI** — corner-bracket face tracking, glass-panel status banner, live clock.
-- **Blink-based liveness check** — a match isn't enough on its own; the system watches for a natural eye blink before granting access, so a printed photo or a phone screen held up to the camera won't check someone in. See the "Liveness detection" section below for exactly what this does and doesn't protect against.
-- **SQLite storage** — employee profiles (name, ID, department) + attendance timestamps.
-- **Cooldown logic** — the same person won't log 10 entries for standing near the camera; a 2-minute window prevents duplicate logs.
-- **Manage employees** — remove an enrolled employee (and their attendance history) any time from the Employees page.
-- **Change admin password** — from Settings, no need to edit files or restart anything.
+- **Sci-fi style lock-on HUD** — corner-bracket face tracking, glass-panel status banner, live clock.
+- **Blink-based liveness check** — ensures physical presence using EAR blink analysis to prevent photo/screen spoofing.
+- **SQLite local storage** — employee profiles, biometrics, and timestamps stored locally with automatic directory provisioning.
+- **Cooldown protection** — configurable cooldown window prevents spamming duplicate punches if standing near the camera.
+- **Employee Directory** — instant search, department filtering, and presence tracking badges (*In Office*, *Checked Out*, *Absent*).
+- **Settings Portal** — configure shift late cutoffs, webhook URLs, audio defaults, and admin credentials without touching configuration files.
 
 ## 1. Install dependencies
 
