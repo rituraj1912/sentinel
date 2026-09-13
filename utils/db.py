@@ -20,7 +20,7 @@ from utils.timezone import (
 
 
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "attendance.db"))
->>>>>>> d489e9593f23efbb1d5ae40d5f3b1ef02823ab45
+
 def get_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
