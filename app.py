@@ -15,10 +15,9 @@ from utils.timezone import (
     now_utc, parse_stored, to_local_time_only, to_local_display,
     today_utc_range, DISPLAY_TZ, today_local_date_str
 )
-<<<<<<< HEAD
 
-=======
->>>>>>> d489e9593f23efbb1d5ae40d5f3b1ef02823ab45
+
+
 from flask import (
     Flask, render_template, request, redirect, url_for, session,
     jsonify, flash, Response, make_response
@@ -38,7 +37,7 @@ from utils.notifications import dispatch_attendance_alert, test_webhook_url
 from utils import liveness
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "sentinel-super-secret-key-2026")
-<<<<<<< HEAD
+
 
 PHOTOS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "data", "photos"))
 MATCH_THRESHOLD = 0.5           # Lower = stricter match
@@ -442,5 +441,4 @@ if __name__ == "__main__":
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     print(f"[*] Sentinel running at http://localhost:{port}")
     app.run(debug=debug_mode, host="0.0.0.0", port=port)
-=======
->>>>>>> d489e9593f23efbb1d5ae40d5f3b1ef02823ab45
+
